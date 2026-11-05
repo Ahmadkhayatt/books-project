@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "siteName": "Bookshelf Exchange",
+    "title": "Bookshelf Exchange — a readers' exchange library",
+    "description": "A library readers trade between themselves: show the copy you have finished, find the one you have been hunting for, and talk it over before the book changes hands."
+  },
+  "nav": {
+    "home": "Home",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "account": "Account",
+    "primary": "Primary navigation",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
+  },
+  "hero": {
+    "kicker": "TABĀDUL — 2026",
+    "title": "Every book deserves a second reader",
+    "lede": "Small shelves traded between readers: show the copy you have finished, find the one that belongs on your shelf, and talk with its keeper before the book passes from hand to hand.",
+    "ctaPrimary": "Create a free account",
+    "ctaSecondary": "Sign in",
+    "seal": "BOOKSHELF EXCHANGE • EST. 2026 •",
+    "est": "EST. 2026"
+  },
+  "home": {
+    "principlesLabel": "Three steps on the shelf",
+    "p01t": "Show your copy",
+    "p01b": "Record the book you have finished: its condition, its price if you sell it, or what you would swap it for.",
+    "p02t": "Find your missing book",
+    "p02b": "Browse other readers' shelves and search by title, author, or ISBN.",
+    "p03t": "Trade and earn a reputation",
+    "p03b": "Agree on a meeting or a delivery, then rate the exchange; trust is built one trade at a time.",
+    "colophon": "Bookshelf Exchange — a readers' exchange library, open to all",
+    "localeNote": "In Arabic and English, right to left and left to right."
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "displayName": "Display name",
+    "username": "Username",
+    "createAccount": "Create an account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "No account yet?",
+    "signingIn": "Signing in…",
+    "submitting": "Submitting…",
+    "signInTitle": "Sign in",
+    "signUpTitle": "Create an account",
+    "signInIntro": "Return to your shelves and conversations; your next book is waiting.",
+    "signUpIntro": "One step from your first exchange, and a new shelf starts here.",
+    "emailHint": "We only use it to sign you in.",
+    "usernameHint": "3 to 24 lowercase Latin letters, digits, or underscores.",
+    "passwordHint": "At least 8 characters, including a letter and a digit.",
+    "displayNameHint": "The name other readers will see.",
+    "required": "required",
+    "errors": {
+      "invalidCredentials": "That email or password is not right.",
+      "rateLimited": "Too many attempts — try again in a few minutes.",
+      "emailTaken": "This email is already registered. Try signing in.",
+      "usernameTaken": "That username is taken. Choose another one.",
+      "passwordWeak": "Weak password: at least 8 characters, with a letter and a digit.",
+      "generic": "We could not complete that request. Please try again."
+    }
+  },
+  "common": {
+    "skipToContent": "Skip to content",
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "backHome": "Back home"
+  },
+  "notFound": {
+    "title": "№ 404 — This page is not on our shelves",
+    "body": "Perhaps the book moved to another shelf, or the link was never on our catalogue.",
+    "cta": "Back home"
+  },
+  "error": {
+    "title": "The shelf gave way — something broke",
+    "body": "We could not show this page. Try again, and tell us if the error repeats.",
+    "retry": "Try again",
+    "digestLabel": "Error code"
+  },
+  "footer": {
+    "tagline": "Every book deserves a second reader",
+    "guide": "Guide",
+    "home": "Home",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "language": "Language",
+    "rights": "© 2026 Bookshelf Exchange",
+    "edition": "First Edition",
+    "availability": "Open to readers in Egypt for now, with more shelves opening soon.",
+    "colophon": "A book exchange built on paper and ink, not advertising.",
+    "github": "Repository on GitHub"
+  },
+  "localeSwitch": {
+    "ar": "العربية",
+    "en": "English",
+    "label": "Language"
+  }
+}
