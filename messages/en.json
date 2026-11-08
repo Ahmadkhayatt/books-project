@@ -114,6 +114,7 @@
   },
   "listing": {
     "title": "Listings",
+    "search": "Search",
     "lede": "Offers of finished copies, waiting for a second reader.",
     "count": "{count, plural, =0 {No offers on this shelf yet} one {# offer on this shelf} other {# offers on this shelf}}",
     "newListing": "List an offer",
