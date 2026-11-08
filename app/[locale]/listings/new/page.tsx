@@ -22,6 +22,12 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** Deployment default for new listings (PLAN §16.1); EGP when unset/invalid. */
+function defaultCurrency(): string {
+  const raw = process.env.DEFAULT_CURRENCY?.trim().toUpperCase();
+  return raw && /^[A-Z]{3,8}$/.test(raw) ? raw : "EGP";
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -116,7 +122,7 @@ export default async function NewListingPage({
         <div className="mt-4">
           <form action={createListing} className="form-card">
             <input type="hidden" name="locale" value={locale} />
-            <input type="hidden" name="currency" value="EGP" />
+            <input type="hidden" name="currency" value={defaultCurrency()} />
 
             <div>
               <label htmlFor="bookId" className="text-sm text-ink-soft">
@@ -219,7 +225,7 @@ export default async function NewListingPage({
 
               <div>
                 <label htmlFor="meetupOptions" className="text-sm text-ink-soft">
-                  {t("genre")}
+                  {t("meetup")}
                 </label>
                 <input
                   id="meetupOptions"

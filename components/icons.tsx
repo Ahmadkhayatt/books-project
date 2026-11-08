@@ -203,7 +203,7 @@ export function BookmarkIcon({ className, filled = false }: IconProps & { filled
       focusable="false"
       className={className}
     >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18c0 0-3-2-3-9Z" />
+      <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4.5L5 20V5a1 1 0 0 1 1-1Z" />
     </svg>
   );
 }

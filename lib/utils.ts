@@ -12,6 +12,25 @@ export function formatIndex(locale: string, value: number): string {
   return padded.replace(/\d/g, (digit) => ARABIC_INDIC_DIGITS[Number(digit)]);
 }
 
+/** Price in minor units → localized currency string (e.g. ٥٠٫٠٠ ج.م.). */
+export function formatPrice(
+  locale: string,
+  priceCents: number,
+  currency: string,
+): string {
+  const normalized = currency.trim().toUpperCase();
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: /^[A-Z]{3}$/.test(normalized) ? normalized : "EGP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(priceCents / 100);
+  } catch {
+    return `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(priceCents / 100)} ${normalized}`;
+  }
+}
+
 const countFormatters = new Map<string, Intl.NumberFormat>();
 const yearFormatters = new Map<string, Intl.NumberFormat>();
 

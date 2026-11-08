@@ -6,6 +6,7 @@ type NoticeKind =
   | "exists"
   | "reviewDeleted"
   | "listingCreated"
+  | "listingUpdated"
   | "listingCancelled"
   | "listingReserved"
   | "wishlistAdded"
@@ -22,6 +23,7 @@ const NOTICE_KEYS = {
   exists: "exists",
   reviewDeleted: "reviewDeleted",
   listingCreated: "listingCreated",
+  listingUpdated: "listingUpdated",
   listingCancelled: "listingCancelled",
   listingReserved: "listingReserved",
   wishlistAdded: "wishlistAdded",

@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { routing } from "@/i18n/routing";
 import { getListings } from "@/lib/listings";
-import { displayTitle, formatCount, formatIndex } from "@/lib/utils";
+import { displayTitle, formatIndex, formatPrice } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +103,9 @@ export default async function ListingsPage({
       : undefined;
   const priceMin = toNullableInt(firstValue(filters.priceMin));
   const priceMax = toNullableInt(firstValue(filters.priceMax));
+  // URL prices are major units; storage is minor units (priceCents).
+  const priceMinCents = priceMin == null ? null : priceMin * 100;
+  const priceMaxCents = priceMax == null ? null : priceMax * 100;
   const city = (firstValue(filters.city) ?? "").trim() || undefined;
   const genre = (firstValue(filters.genre) ?? "").trim() || undefined;
   const sortRaw = firstValue(filters.sort) ?? "newest";
@@ -115,8 +118,8 @@ export default async function ListingsPage({
     q: q || undefined,
     type,
     condition,
-    priceMin,
-    priceMax,
+    priceMin: priceMinCents,
+    priceMax: priceMaxCents,
     city,
     genre,
     sort,
@@ -137,6 +140,7 @@ export default async function ListingsPage({
     city: city || undefined,
     genre: genre || undefined,
     sort: sort,
+    bookId: bookId || undefined,
   };
 
   const pageHref = (targetPage: number) =>
@@ -158,7 +162,7 @@ export default async function ListingsPage({
 
   const priceLabel = (listing: (typeof result.listings)[number]) => {
     if (listing.priceCents === null) return null;
-    return `${formatCount(locale, listing.priceCents)} ${listing.currency}`;
+    return formatPrice(locale, listing.priceCents, listing.currency);
   };
 
   const authorLine = (listing: (typeof result.listings)[number]) =>
@@ -196,7 +200,9 @@ export default async function ListingsPage({
         </h2>
 
         <form method="get" className="form-card mt-4 max-w-3xl">
-          <input type="hidden" name="bookId" value={bookId ?? ""} />
+          {bookId ? (
+            <input type="hidden" name="bookId" value={bookId} />
+          ) : null}
 
           <label htmlFor="q" className="text-sm text-ink-soft">
             {t("search")}
@@ -372,7 +378,7 @@ export default async function ListingsPage({
 
                 <div className="flex shrink-0 flex-col items-start gap-2">
                   {priceLabel(listing) ? (
-                    <p className="ledger-value text-sm" dir="ltr">
+                    <p className="ledger-value text-sm" dir="auto">
                       {priceLabel(listing)}
                     </p>
                   ) : null}
@@ -412,12 +418,12 @@ export default async function ListingsPage({
                 aria-label={tCatalog("nextPage")}
               >
                 <span>{tCatalog("nextPage")}</span>
-                <ChevronRightIcon />
+                <ChevronRightIcon className="icon-flip" />
               </Link>
             ) : (
               <span className="pagination__link" aria-disabled="true" aria-label={tCatalog("nextPage")}>
                 <span>{tCatalog("nextPage")}</span>
-                <ChevronRightIcon />
+                <ChevronRightIcon className="icon-flip" />
               </span>
             )}
           </div>

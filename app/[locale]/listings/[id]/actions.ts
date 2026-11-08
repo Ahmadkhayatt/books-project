@@ -87,11 +87,16 @@ const optionalInt = (min: number, max: number) =>
     return Number.isFinite(parsed) ? Math.trunc(parsed) : Number.NaN;
   }, z.number().int().min(min).max(max).nullable());
 
+/**
+ * The form asks for a price in major currency units ("Price", no decimals —
+ * users type 50, not 5000), so the schema caps the *entered* value and
+ * `listingDraftFrom` converts to stored minor units (priceCents).
+ */
 const listingSchema = z.object({
   bookId: z.string().trim().min(1).max(64),
   type: z.enum(["SELL", "SWAP", "FREE"]),
   condition: z.enum(["NEW", "LIKE_NEW", "GOOD", "ACCEPTABLE", "WORN"]),
-  priceCents: optionalInt(0, 100_000_000),
+  priceCents: optionalInt(0, 1_000_000),
   currency: z.string().trim().min(3).max(8).default("EGP"),
   description: optionalText(2000),
   location: optionalText(200),
@@ -126,12 +131,15 @@ function listingDraftFrom(formData: FormData): ListingDraftResult {
     return { ok: false };
   }
 
-  // SELL offers need a price; SWAP/FREE copies never carry one.
+  // SELL offers need a price; SWAP/FREE copies never carry one. The
+  // entered major units become stored minor units (×100).
   if (parsed.data.type === "SELL" && parsed.data.priceCents == null) {
     return { ok: false };
   }
   const priceCents =
-    parsed.data.type === "SELL" ? parsed.data.priceCents : null;
+    parsed.data.type === "SELL" && parsed.data.priceCents != null
+      ? parsed.data.priceCents * 100
+      : null;
 
   return { ok: true, data: { ...parsed.data, priceCents } };
 }
