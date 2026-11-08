@@ -49,7 +49,6 @@ export async function searchListings(query: string, limit = 24) {
     include: {
       book: {
         include: {
-          subjects: true,
           authors: { orderBy: { order: "asc" }, include: { author: true } },
         },
       },

@@ -1,7 +1,12 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
-import { ListingStatus } from "@/generated/prisma/enums";
+import {
+  BookCondition,
+  ListingStatus,
+  ListingType,
+  UserStatus,
+} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -23,20 +28,42 @@ export const bookWithAuthors = {
 /**
  * M2 ledger-row shape: a Listing with the offered Book (authors) and the
  * seller (profile display name). CANCELLED listings are excluded upstream.
+ * Written by hand (not GetPayload) because the global `omit: passwordHash`
+ * in lib/prisma.ts makes Prisma's payload type disagree with the runtime
+ * shape for User-including queries — the same reason getBookReviews maps.
  */
-export type ListingWithBook = Prisma.ListingGetPayload<{
-  include: {
-    book: {
-      include: {
-        authors: {
-          orderBy: { order: "asc" as const },
-          include: { author: true },
-        },
-      },
-    };
-    seller: { include: { profile: true } };
+export type ListingWithBook = {
+  id: string;
+  bookId: string;
+  sellerId: string;
+  type: ListingType;
+  condition: BookCondition;
+  priceCents: number | null;
+  currency: string;
+  status: ListingStatus;
+  description: string | null;
+  images: string[];
+  location: string | null;
+  meetupOptions: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  book: {
+    id: string;
+    title: string;
+    titleAr: string | null;
+    coverUrl: string | null;
+    isbn13: string | null;
+    subjects: string[];
+    authors: Array<{ author: { name: string } }>;
   };
-}>;
+  seller: {
+    id: string;
+    username: string;
+    name: string | null;
+    status: UserStatus;
+    profile: { displayName: string | null } | null;
+  };
+};
 
 const listingInclude = {
   book: {
@@ -180,12 +207,50 @@ export async function getBookListings(
   viewerId: string | null,
   limit = 4,
 ): Promise<ListingWithBook[]> {
-  return prisma.listing.findMany({
+  void viewerId;
+  const rows = await prisma.listing.findMany({
     where: { bookId, status: ListingStatus.ACTIVE },
     include: listingInclude,
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: Math.max(1, Math.trunc(limit)),
   });
+
+  return rows.map((row) => ({
+    id: row.id,
+    bookId: row.bookId,
+    sellerId: row.sellerId,
+    type: row.type,
+    condition: row.condition,
+    priceCents: row.priceCents,
+    currency: row.currency,
+    status: row.status,
+    description: row.description,
+    images: row.images,
+    location: row.location,
+    meetupOptions: row.meetupOptions,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    book: {
+      id: row.book.id,
+      title: row.book.title,
+      titleAr: row.book.titleAr,
+      coverUrl: row.book.coverUrl,
+      isbn13: row.book.isbn13,
+      subjects: row.book.subjects,
+      authors: row.book.authors.map((entry) => ({
+        author: { name: entry.author.name },
+      })),
+    },
+    seller: {
+      id: row.seller.id,
+      username: row.seller.username,
+      name: row.seller.name,
+      status: row.seller.status,
+      profile: row.seller.profile
+        ? { displayName: row.seller.profile.displayName }
+        : null,
+    },
+  }));
 }
 
 export async function getRatingAggregates(

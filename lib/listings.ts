@@ -1,7 +1,12 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
-import { BookCondition, ListingStatus, ListingType } from "@/generated/prisma/enums";
+import {
+  BookCondition,
+  ListingStatus,
+  ListingType,
+  UserStatus,
+} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { bookSearchConditions } from "@/lib/search";
 
@@ -13,6 +18,7 @@ import { bookSearchConditions } from "@/lib/search";
 export type ListingWithBook = {
   id: string;
   bookId: string;
+  sellerId: string;
   type: ListingType;
   condition: BookCondition;
   priceCents: number | null;
@@ -29,6 +35,7 @@ export type ListingWithBook = {
     title: string;
     titleAr: string | null;
     coverUrl: string | null;
+    isbn13: string | null;
     subjects: string[];
     authors: Array<{ author: { name: string } }>;
   };
@@ -36,7 +43,7 @@ export type ListingWithBook = {
     id: string;
     username: string;
     name: string | null;
-    status: ListingStatus;
+    status: UserStatus;
     profile: { displayName: string | null } | null;
   };
 };
@@ -53,8 +60,8 @@ export type ListingSort = "newest" | "priceLow" | "priceHigh";
 
 export type ListingFilters = {
   q?: string;
-  type?: string;
-  condition?: string;
+  type?: ListingType;
+  condition?: BookCondition;
   priceMin?: number | null;
   priceMax?: number | null;
   city?: string;
@@ -70,8 +77,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const listingInclude = {
   book: {
     include: {
-      subjects: true,
-      authors: { orderBy: { order: "asc" }, include: { author: true } },
+      authors: { orderBy: { order: "asc" as const }, include: { author: true } },
     },
   },
   seller: { include: { profile: true } },
@@ -104,21 +110,31 @@ export async function getListings(filters: ListingFilters): Promise<ListingsPage
   if (filters.type) where.type = filters.type;
   if (filters.condition) where.condition = filters.condition;
 
-  const conditions: Prisma.ListingWhereInput[] = [];
-  if (filters.priceMin) conditions.push({ priceCents: { gte: filters.priceMin } });
-  if (filters.priceMax) conditions.push({ priceCents: { lte: filters.priceMax } });
-  if (conditions.length > 0) where.AND = [...(where.AND ?? []), ...conditions];
+  const andConditions: Prisma.ListingWhereInput[] = [];
+  if (filters.priceMin != null) {
+    andConditions.push({ priceCents: { gte: filters.priceMin } });
+  }
+  if (filters.priceMax != null) {
+    andConditions.push({ priceCents: { lte: filters.priceMax } });
+  }
 
   const city = filters.city?.trim();
   if (city) {
-    const existingAnd = Array.isArray(where.AND) ? where.AND : [];
-    where.AND = [...existingAnd, { location: { contains: city, mode: "insensitive" } }];
+    andConditions.push({
+      location: { contains: city, mode: "insensitive" },
+    });
   }
 
   const query = filters.q?.trim();
   if (query) where.book = bookSearchConditions(query);
 
   const genre = filters.genre?.trim();
+  if (genre) {
+    andConditions.push({ book: { subjects: { has: genre } } });
+  }
+
+  if (andConditions.length > 0) where.AND = andConditions;
+
   const sort = filters.sort ?? "newest";
 
   const orderBy =
@@ -128,34 +144,21 @@ export async function getListings(filters: ListingFilters): Promise<ListingsPage
         ? { priceCents: "desc" as const }
         : { createdAt: "desc" as const };
 
-  const shouldFilterGenre = Boolean(genre);
-  const rows = await prisma.listing.findMany({
-    where,
-    include: listingInclude,
-    orderBy,
-    ...(shouldFilterGenre
-      ? {}
-      : { skip: (page - 1) * pageSize, take: pageSize }),
-  });
-
-  const listings = shouldFilterGenre
-    ? rows.filter((listing) =>
-        (listing.book.subjects ?? []).some(
-          (subject) => subject.toLowerCase() === (genre ?? "").toLowerCase(),
-        ),
-      )
-    : rows;
-
-  const total = shouldFilterGenre
-    ? listings.length
-    : await prisma.listing.count({ where });
+  const [rows, total] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      include: listingInclude,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.listing.count({ where }),
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, totalPages);
-  const start = (current - 1) * pageSize;
-  const paged = shouldFilterGenre ? listings.slice(start, start + pageSize) : listings;
 
-  return { listings: paged, total, page: current, pageSize, totalPages };
+  return { listings: rows, total, page: current, pageSize, totalPages };
 }
 
 export type ListingInput = {

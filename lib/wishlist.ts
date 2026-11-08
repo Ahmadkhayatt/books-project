@@ -47,7 +47,6 @@ export async function getWishlistForUser(userId: string) {
     include: {
       book: {
         include: {
-          subjects: true,
           authors: { orderBy: { order: "asc" }, include: { author: true } },
         },
       },

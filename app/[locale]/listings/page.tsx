@@ -87,8 +87,20 @@ export default async function ListingsPage({
 
   const filters = await searchParams;
   const q = (firstValue(filters.q) ?? "").trim();
-  const type = firstValue(filters.type) ?? undefined;
-  const condition = firstValue(filters.condition) ?? undefined;
+  const typeRaw = firstValue(filters.type) ?? "";
+  const type =
+    typeRaw === "SELL" || typeRaw === "SWAP" || typeRaw === "FREE"
+      ? typeRaw
+      : undefined;
+  const conditionRaw = firstValue(filters.condition) ?? "";
+  const condition =
+    conditionRaw === "NEW" ||
+    conditionRaw === "LIKE_NEW" ||
+    conditionRaw === "GOOD" ||
+    conditionRaw === "ACCEPTABLE" ||
+    conditionRaw === "WORN"
+      ? conditionRaw
+      : undefined;
   const priceMin = toNullableInt(firstValue(filters.priceMin));
   const priceMax = toNullableInt(firstValue(filters.priceMax));
   const city = (firstValue(filters.city) ?? "").trim() || undefined;

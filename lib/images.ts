@@ -44,30 +44,48 @@ function sniffContentType(buffer: Buffer): string | null {
   return null;
 }
 
-function extensionFor(contentType: string): string {
-  if (contentType === "image/jpeg") return "jpg";
-  if (contentType === "image/png") return "png";
-  return "webp";
+/** Normalized output is always WebP, so keys always end in `.webp`. */
+function uploadKey(): string {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}/${month}/${randomUUID()}.webp`;
 }
 
-/** Magic-byte sniff + ≤5 MB guard. Anything else is rejected before sharp sees it. */
-function assertAcceptable(buffer: Buffer, contentType?: string): string {
-  const detected = contentType ?? sniffContentType(buffer);
-  if (!detected || !ACCEPTED_CONTENT_TYPES.includes(detected as (typeof ACCEPTED_CONTENT_TYPES)[number])) {
-    throw new Error("Unsupported image type — JPEG, PNG or WebP only");
-  }
+/**
+ * Magic-byte sniff + ≤5 MB guard. Anything else is rejected before sharp sees
+ * it. The caller-supplied content type is untrusted and never overrides the
+ * sniff — a spoofed `image/jpeg` header with HTML bytes must not pass.
+ */
+function assertAcceptable(buffer: Buffer, _contentType?: string): string {
+  void _contentType;
   if (buffer.length === 0 || buffer.length > MAX_FILE_BYTES) {
     throw new Error("Image size out of bounds");
+  }
+  const detected = sniffContentType(buffer);
+  if (!detected || !ACCEPTED_CONTENT_TYPES.includes(detected as (typeof ACCEPTED_CONTENT_TYPES)[number])) {
+    throw new Error("Unsupported image type — JPEG, PNG or WebP only");
   }
   return detected;
 }
 
-function uploadKey(contentType: string): string {
-  const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const suffix = extensionFor(contentType);
-  return `${year}/${month}/${randomUUID()}.${suffix}`;
+async function normalizeToWebP(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .rotate()
+    .resize({ fit: "inside", height: MAX_DIMENSION, width: MAX_DIMENSION })
+    .webp({ quality: 80 })
+    .toBuffer();
+}
+
+/**
+ * Recover the object key (`<yyyy>/<mm>/<uuid>.webp`) from a stored URL or a
+ * bare key. Both stores accept either form so listing-edit cleanup never has
+ * to know which store wrote the photo.
+ */
+function keyFromStoredValue(value: string): string {
+  const match = value.match(/(\d{4}\/\d{2}\/[^/]+\.webp)$/);
+  if (match?.[1]) return match[1];
+  return value.replace(/^\/+/, "").replace(/^uploads\//, "");
 }
 
 /**
@@ -77,24 +95,21 @@ function uploadKey(contentType: string): string {
  */
 export class LocalDiskImageStore implements ImageStore {
   async put(buffer: Buffer, contentType?: string): Promise<{ key: string; url: string }> {
-    const type = assertAcceptable(buffer, contentType);
+    assertAcceptable(buffer, contentType);
 
-    const normalized = await sharp(buffer)
-      .rotate()
-      .resize({ fit: "inside", height: MAX_DIMENSION, width: MAX_DIMENSION })
-      .webp({ quality: 80 })
-      .toBuffer({ format: "webp" });
+    const normalized = await normalizeToWebP(buffer);
 
-    const key = uploadKey(type);
-    const target = join(process.cwd(), "public", key);
+    const key = uploadKey();
+    const target = join(process.cwd(), "public", "uploads", key);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, normalized);
 
-    return { key, url: `/${key}` };
+    return { key, url: `/uploads/${key}` };
   }
 
   async delete(key: string): Promise<void> {
-    await unlink(join(process.cwd(), "public", key));
+    const objectKey = keyFromStoredValue(key);
+    await unlink(join(process.cwd(), "public", "uploads", objectKey));
   }
 }
 
@@ -118,16 +133,17 @@ export class S3ImageStore implements ImageStore {
   });
 
   async put(buffer: Buffer, contentType?: string): Promise<{ key: string; url: string }> {
-    const type = assertAcceptable(buffer, contentType);
-    const key = uploadKey(type);
+    assertAcceptable(buffer, contentType);
+    const normalized = await normalizeToWebP(buffer);
+    const key = uploadKey();
     const bucket = process.env.S3_BUCKET ?? "books-exchange";
 
     await this.client.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: buffer,
-        ContentType: type,
+        Body: normalized,
+        ContentType: "image/webp",
       }),
     );
 
@@ -137,7 +153,10 @@ export class S3ImageStore implements ImageStore {
 
   async delete(key: string): Promise<void> {
     const bucket = process.env.S3_BUCKET ?? "books-exchange";
-    await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    const objectKey = keyFromStoredValue(key);
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }),
+    );
   }
 }
 

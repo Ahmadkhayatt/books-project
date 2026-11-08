@@ -104,13 +104,19 @@ type ListingDraftResult =
   | { ok: true; data: ListingDraft }
   | { ok: false };
 
+/** Deployment default for new listings (PLAN §16.1); EGP when unset/invalid. */
+function defaultCurrency(): string {
+  const raw = process.env.DEFAULT_CURRENCY?.trim().toUpperCase();
+  return raw && /^[A-Z]{3,8}$/.test(raw) ? raw : "EGP";
+}
+
 function listingDraftFrom(formData: FormData): ListingDraftResult {
   const parsed = listingSchema.safeParse({
     bookId: String(formData.get("bookId") ?? ""),
     type: String(formData.get("type") ?? ""),
     condition: String(formData.get("condition") ?? ""),
     priceCents: formData.get("priceCents"),
-    currency: String(formData.get("currency") ?? "EGP"),
+    currency: String(formData.get("currency") ?? "") || defaultCurrency(),
     description: formData.get("description"),
     location: formData.get("location"),
     meetupOptions: formData.get("meetupOptions"),
@@ -120,7 +126,14 @@ function listingDraftFrom(formData: FormData): ListingDraftResult {
     return { ok: false };
   }
 
-  return { ok: true, data: parsed.data };
+  // SELL offers need a price; SWAP/FREE copies never carry one.
+  if (parsed.data.type === "SELL" && parsed.data.priceCents == null) {
+    return { ok: false };
+  }
+  const priceCents =
+    parsed.data.type === "SELL" ? parsed.data.priceCents : null;
+
+  return { ok: true, data: { ...parsed.data, priceCents } };
 }
 
 /** Files the client posted (`<input type="file" name="images" multiple />`). */
@@ -150,7 +163,7 @@ async function uploadImages(files: File[]): Promise<string[]> {
  * per user across all of their listings.
  */
 export async function createListing(formData: FormData): Promise<void> {
-  const locale = localeFrom(formData);
+  const locale = localeFrom(formData.get("locale"));
   const draftResult = listingDraftFrom(formData);
   const errorHref = `/${locale}/listings/new?error=listingInvalid`;
 
@@ -218,7 +231,7 @@ export async function createListing(formData: FormData): Promise<void> {
  * below — the edit path never overwrites lifecycle state.
  */
 export async function updateListing(formData: FormData): Promise<void> {
-  const locale = localeFrom(formData);
+  const locale = localeFrom(formData.get("locale"));
   const listingId = String(formData.get("listingId") ?? "").trim();
   const draftResult = listingDraftFrom(formData);
 
@@ -246,14 +259,26 @@ export async function updateListing(formData: FormData): Promise<void> {
   }
 
   const files = await postedImages(formData);
+  if (files.length > MAX_LISTING_IMAGES) redirect(errorHref);
   const imageUrls =
     files.length > 0 ? await uploadImages(files) : listing.images;
+  // Per-user quota (60) must still hold after the edit replaces photos.
+  const sellerImages = await prisma.listing.findMany({
+    where: { sellerId: userId },
+    select: { id: true, images: true },
+  });
+  const otherUploads = sellerImages
+    .filter((row) => row.id !== listing.id)
+    .reduce((sum, row) => sum + row.images.length, 0);
+  if (otherUploads + imageUrls.length > MAX_USER_UPLOADS) {
+    redirect(errorHref);
+  }
   const staleKeys = listing.images.filter(
     (image) => !imageUrls.includes(image),
   );
   const store = getImageStore();
   for (const key of staleKeys) {
-    await store.delete(key.replace(/^\//, ""));
+    await store.delete(key);
   }
 
   try {
@@ -281,7 +306,7 @@ export async function updateListing(formData: FormData): Promise<void> {
  * a cancelled listing disappears from every browse surface immediately.
  */
 export async function cancelListing(formData: FormData): Promise<void> {
-  const locale = localeFrom(formData);
+  const locale = localeFrom(formData.get("locale"));
   const listingId = String(formData.get("listingId") ?? "").trim();
 
   const userId = await activeUserId();
@@ -322,7 +347,7 @@ export async function cancelListing(formData: FormData): Promise<void> {
  * them into COMPLETED).
  */
 export async function reserveListing(formData: FormData): Promise<void> {
-  const locale = localeFrom(formData);
+  const locale = localeFrom(formData.get("locale"));
   const listingId = String(formData.get("listingId") ?? "").trim();
 
   const userId = await activeUserId();
