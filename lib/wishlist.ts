@@ -1,16 +1,15 @@
-"use server";
-
 import "server-only";
 
-import { redirect } from "next/navigation";
-
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
  * Wishlist read/write layer (M2). Toggle semantics: delete-if-present,
  * create-if-absent; a concurrent unique-constraint race resolves as a no-op
  * (`{ wished: false }` — the desired end state already holds).
+ *
+ * The form-facing action lives in `app/[locale]/wishlist/actions.ts`
+ * ("use server"); this module stays a plain server-only helper so pages can
+ * import reads without going through an action boundary.
  */
 
 export type WishlistToggleResult = { wished: boolean };
@@ -41,6 +40,18 @@ export async function toggleWishlistItem(
   }
 }
 
+export async function isWishlisted(
+  userId: string | null,
+  bookId: string,
+): Promise<boolean> {
+  if (!userId) return false;
+  const found = await prisma.wishlistItem.findUnique({
+    where: { userId_bookId: { userId, bookId } },
+    select: { userId: true },
+  });
+  return found !== null;
+}
+
 export async function getWishlistForUser(userId: string) {
   return prisma.wishlistItem.findMany({
     where: { userId },
@@ -53,46 +64,4 @@ export async function getWishlistForUser(userId: string) {
     },
     orderBy: { createdAt: "asc" },
   });
-}
-
-function localeFrom(value: FormDataEntryValue | null): "ar" | "en" {
-  return value === "en" ? "en" : "ar";
-}
-
-async function currentUserId(): Promise<string | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, status: true },
-  });
-
-  return user?.status === "ACTIVE" ? user.id : null;
-}
-
-/**
- * Wishlist toggle server action. Redirects back to the originating surface
- * with a lifecycle notice (`wishlistAdded` / `wishlistRemoved`).
- */
-export async function wishlistToggleAction(formData: FormData): Promise<void> {
-  const locale = localeFrom(formData.get("locale"));
-  const userId = await currentUserId();
-  const bookId = String(formData.get("bookId") ?? "").trim();
-
-  if (!userId || !bookId) {
-    redirect(`/${locale}/wishlist`);
-  }
-
-  const wished = await toggleWishlistItem(userId, bookId);
-  const target =
-    String(formData.get("from") ?? "").trim() === "wishlist"
-      ? `/${locale}/wishlist`
-      : `/${locale}/books/${bookId}`;
-
-  if (wished) {
-    redirect(`${target}?notice=wishlistAdded`);
-  }
-  redirect(`${target}?notice=wishlistRemoved`);
 }

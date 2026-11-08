@@ -10,8 +10,10 @@ import {
   deleteReview,
   saveReview,
 } from "@/app/[locale]/books/[id]/actions";
+import { wishlistToggleAction } from "@/app/[locale]/wishlist/actions";
 import { auth } from "@/auth";
 import { BookCover } from "@/components/book-cover";
+import { BookmarkIcon } from "@/components/icons";
 import { CatalogCard } from "@/components/catalog-card";
 import { CommentItem } from "@/components/comment-item";
 import { EmptyState } from "@/components/empty-state";
@@ -24,13 +26,15 @@ import { routing } from "@/i18n/routing";
 import {
   getBookById,
   getBookDiscussion,
+  getBookListings,
   getBookReviews,
   getRatingAggregates,
   getRelatedBooks,
   getViewerRating,
   getViewerReview,
 } from "@/lib/books";
-import { displayTitle, formatCount, formatYear } from "@/lib/utils";
+import { isWishlisted } from "@/lib/wishlist";
+import { displayTitle, formatCount, formatPrice, formatYear } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -147,17 +151,29 @@ export default async function BookPage({
   const book = await getBookById(id);
   if (!book) notFound();
 
-  const [ratings, viewerReview, viewerRating, reviews, discussion, related] =
-    await Promise.all([
-      getRatingAggregates(book.id),
-      viewerId ? getViewerReview(viewerId, book.id) : Promise.resolve(null),
-      viewerId ? getViewerRating(viewerId, book.id) : Promise.resolve(null),
-      getBookReviews(book.id, viewerId),
-      getBookDiscussion(book.id, viewerId),
-      getRelatedBooks(book),
-    ]);
+  const [
+    ratings,
+    viewerReview,
+    viewerRating,
+    reviews,
+    discussion,
+    related,
+    bookListings,
+    wished,
+  ] = await Promise.all([
+    getRatingAggregates(book.id),
+    viewerId ? getViewerReview(viewerId, book.id) : Promise.resolve(null),
+    viewerId ? getViewerRating(viewerId, book.id) : Promise.resolve(null),
+    getBookReviews(book.id, viewerId),
+    getBookDiscussion(book.id, viewerId),
+    getRelatedBooks(book),
+    getBookListings(book.id, viewerId, 4),
+    isWishlisted(viewerId, book.id),
+  ]);
 
   const t = await getTranslations({ locale, namespace: "book" });
+  const tListing = await getTranslations({ locale, namespace: "listing" });
+  const tWishlist = await getTranslations({ locale, namespace: "wishlist" });
 
   const title = displayTitle(book, locale);
   const authors = authorLineFor(book, locale);
@@ -172,9 +188,14 @@ export default async function BookPage({
   const signInHref = `/${locale}/sign-in?callbackUrl=${encodeURIComponent(bookHref)}`;
   const isbn = book.isbn13 ?? book.isbn10;
   const noticeKind =
-    notice === "created" || notice === "exists" || notice === "reviewDeleted"
+    notice === "created" ||
+    notice === "exists" ||
+    notice === "reviewDeleted" ||
+    notice === "wishlistAdded" ||
+    notice === "wishlistRemoved"
       ? notice
       : null;
+  const allOffersHref = `/${locale}/listings?bookId=${encodeURIComponent(book.id)}`;
 
   const starLabels = [1, 2, 3, 4, 5].map((value) =>
     t("starLabel", { value }),
@@ -232,12 +253,25 @@ export default async function BookPage({
             </p>
           ) : null}
 
-          {/* H7: this action row stays for M2's wishlist/toggle; M1 ships the
-              back-link only. */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link href={catalogHref} className="btn btn--ghost btn--sm">
               {t("backToCatalog")}
             </Link>
+            {viewerId ? (
+              <form action={wishlistToggleAction} className="inline">
+                <input type="hidden" name="locale" value={locale} />
+                <input type="hidden" name="bookId" value={book.id} />
+                <SubmitButton
+                  label={wished ? tWishlist("saved") : tWishlist("add")}
+                  className="btn--secondary btn--sm"
+                />
+              </form>
+            ) : (
+              <Link href={signInHref} className="btn btn--secondary btn--sm">
+                <BookmarkIcon />
+                <span>{tWishlist("add")}</span>
+              </Link>
+            )}
           </div>
 
           <div className="mt-8">
@@ -539,22 +573,101 @@ export default async function BookPage({
         </section>
       ) : null}
 
-      {/*
-        H1/H2/H4/H5 — M2 fills this section with ledger rows (not cards) from
-        prisma.listing.findMany({ where: { bookId, status: 'ACTIVE' }, take: 4,
-        orderBy: { createdAt: 'desc' } }). Overflow links to the reserved
-        `/[locale]/listings?bookId={id}` filter. M1 ships only this placeholder.
-      */}
       <section aria-labelledby="listings-heading" className="mt-12">
-        <h2 id="listings-heading" className="section-label">
-          {t("listingsHeading")}
-        </h2>
-        <div className="listings-empty mt-5 px-4 py-2">
-          <EmptyState
-            title={t("listingsEmpty")}
-            body={t("listingsEmptyBody")}
-          />
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="listings-heading" className="section-label">
+            {t("listingsHeading")}
+          </h2>
+          {bookListings.length > 0 ? (
+            <Link href={allOffersHref} className="text-link text-sm">
+              {t("viewAllOffers")}
+            </Link>
+          ) : null}
         </div>
+
+        {bookListings.length === 0 ? (
+          <div className="listings-empty mt-5 px-4 py-2">
+            <EmptyState
+              title={t("listingsEmpty")}
+              body={t("listingsEmptyBody")}
+            />
+          </div>
+        ) : (
+          <ol className="mt-5">
+            {bookListings.map((listing) => {
+              const sellerName =
+                listing.seller.profile?.displayName ??
+                listing.seller.name ??
+                listing.seller.username;
+              const typeLabel =
+                listing.type === "SELL"
+                  ? tListing("typeSell")
+                  : listing.type === "SWAP"
+                    ? tListing("typeSwap")
+                    : tListing("typeFree");
+              const conditionLabel =
+                listing.condition === "NEW"
+                  ? tListing("conditionNew")
+                  : listing.condition === "LIKE_NEW"
+                    ? tListing("conditionLikeNew")
+                    : listing.condition === "GOOD"
+                      ? tListing("conditionGood")
+                      : listing.condition === "ACCEPTABLE"
+                        ? tListing("conditionAcceptable")
+                        : tListing("conditionWorn");
+              const price =
+                listing.priceCents == null
+                  ? null
+                  : formatPrice(locale, listing.priceCents, listing.currency);
+              return (
+                <li
+                  key={listing.id}
+                  className="ledger-row listings-row items-start gap-4"
+                >
+                  <Link
+                    href={`/${locale}/listings/${listing.id}`}
+                    className="shrink-0 self-start"
+                    aria-label={`${title} — ${sellerName}`}
+                  >
+                    <span className="block aspect-[2/3] w-14">
+                      <BookCover
+                        coverUrl={listing.book.coverUrl}
+                        title={title}
+                        alt=""
+                        sizes="(min-width: 1024px) 56px, (min-width: 640px) 7vw, 10vw"
+                        seed={listing.book.isbn13 ?? listing.book.id}
+                      />
+                    </span>
+                  </Link>
+
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/${locale}/listings/${listing.id}`}
+                      className="block truncate text-lg"
+                    >
+                      {title} — <span dir="auto">{sellerName}</span>
+                    </Link>
+                    <p className="mt-1 text-sm text-ink-soft" dir="auto">
+                      {typeLabel} · {conditionLabel}
+                      {listing.location ? ` · ${listing.location}` : ""}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-start gap-2">
+                    {price ? (
+                      <p className="ledger-value text-sm" dir="auto">
+                        {price}
+                      </p>
+                    ) : null}
+                    <span className="chip chip--cloth">
+                      {tListing("statusActive")}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </section>
     </div>
   );

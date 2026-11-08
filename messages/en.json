@@ -160,6 +160,8 @@
     "updateCta": "Update offer",
     "updatingPending": "Updating…",
     "cancel": "Cancel",
+    "cancelListing": "Withdraw offer",
+    "seller": "Seller",
     "gateTitle": "Sign in to list an offer",
     "gateBody": "Listing is open to registered readers, so every offer stays attributed to the reader who finished the copy."
   },
@@ -218,9 +220,15 @@
   },
   "wishlist": {
     "title": "Wishlist",
+    "count": "{count, plural, =0 {No saved books yet} one {# saved book} other {# saved books}}",
     "emptyTitle": "Your wishlist is empty",
     "emptyBody": "Books you save will wait for you here.",
-    "remove": "Remove"
+    "emptyCta": "Browse books",
+    "remove": "Remove",
+    "add": "Save to wishlist",
+    "saved": "Saved to wishlist",
+    "gateTitle": "Sign in to view your wishlist",
+    "gateBody": "Your wishlist is private — sign in to see the books you saved."
   },
   "notice": {
     "created": "The book was added to the catalogue.",

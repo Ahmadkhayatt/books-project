@@ -6,16 +6,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BookCover } from "@/components/book-cover";
+import { NoticeBanner } from "@/components/notice-banner";
 import { SubmitButton } from "@/components/submit-button";
 import { cancelListing, reserveListing } from "@/app/[locale]/listings/[id]/actions";
 import { auth } from "@/auth";
 import { routing } from "@/i18n/routing";
 import { getListingById } from "@/lib/listings";
-import { displayTitle, formatCount } from "@/lib/utils";
+import { displayTitle, formatPrice } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 type PageParams = { locale: string; id: string };
+type PageSearchParams = { notice?: string | string[]; error?: string | string[] };
+
+function firstValue(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
 
 export async function generateMetadata({
   params,
@@ -45,11 +51,17 @@ export async function generateMetadata({
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<PageParams>;
+  searchParams: Promise<PageSearchParams>;
 }) {
   const { locale, id } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
+
+  const query = await searchParams;
+  const notice = firstValue(query.notice);
+  const error = firstValue(query.error);
 
   const listing = await getListingById(id);
   if (!listing) notFound();
@@ -59,6 +71,15 @@ export default async function ListingDetailPage({
   const isOwner = viewerId === listing.seller.id;
 
   const t = await getTranslations("listing");
+  const tBook = await getTranslations("book");
+
+  const noticeKind =
+    notice === "listingCreated" ||
+    notice === "listingUpdated" ||
+    notice === "listingCancelled" ||
+    notice === "listingReserved"
+      ? notice
+      : null;
 
   const title = displayTitle(listing.book, locale);
   const authorLine = listing.book.authors
@@ -101,7 +122,13 @@ export default async function ListingDetailPage({
   const priceLabel =
     listing.priceCents === null
       ? null
-      : `${formatCount(locale, listing.priceCents)} ${listing.currency}`;
+      : formatPrice(locale, listing.priceCents, listing.currency);
+
+  const sellerName =
+    listing.seller.profile?.displayName ??
+    listing.seller.name ??
+    listing.seller.username;
+  const detailHref = `/${locale}/listings/${listing.id}`;
 
   const cancelAction = (
     <form action={cancelListing}>
@@ -130,6 +157,16 @@ export default async function ListingDetailPage({
           {t("backToListings")}
         </Link>
       </div>
+
+      {error ? (
+        <div className="mt-6 max-w-2xl">
+          <NoticeBanner kind="error" code={error} dismissHref={detailHref} />
+        </div>
+      ) : noticeKind ? (
+        <div className="mt-6 max-w-2xl">
+          <NoticeBanner kind={noticeKind} dismissHref={detailHref} />
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-8 md:grid-cols-12 md:gap-12">
         <div className="md:col-span-4 lg:col-span-3">
@@ -160,17 +197,25 @@ export default async function ListingDetailPage({
           ) : null}
 
           <div className="mt-6">
-            {listing.type ? <p className="text-sm text-ink-soft">{typeLabels[listing.type]}</p> : null}
-            {listing.condition ? (
-              <p className="mt-1 text-sm text-ink-soft">
-                {t("condition")}: {conditionLabels[listing.condition] ?? listing.condition}
-              </p>
-            ) : null}
+            <p className="text-sm text-ink-soft">{typeLabels[listing.type]}</p>
+            <p className="mt-1 text-sm text-ink-soft">
+              {t("condition")}:{" "}
+              {conditionLabels[listing.condition] ?? listing.condition}
+            </p>
             {priceLabel ? (
-              <p className="mt-2 text-lg" dir="ltr">
+              <p className="mt-2 text-lg" dir="auto">
                 {priceLabel}
               </p>
             ) : null}
+            <p className="mt-2 text-sm text-ink-soft">
+              {t("seller")}: <bdi dir="auto">{sellerName}</bdi>
+            </p>
+            <Link
+              href={`/${locale}/books/${listing.book.id}`}
+              className="text-link mt-2 inline-block text-sm"
+            >
+              {tBook("backToCatalog")} — {title}
+            </Link>
           </div>
 
           {listing.description ? (
@@ -191,6 +236,17 @@ export default async function ListingDetailPage({
               </h2>
               <p className="mt-2 text-ink-soft" dir="auto">
                 {listing.location}
+              </p>
+            </section>
+          ) : null}
+
+          {listing.meetupOptions ? (
+            <section aria-labelledby="listing-meetup-heading" className="mt-8">
+              <h2 id="listing-meetup-heading" className="section-label">
+                {t("meetup")}
+              </h2>
+              <p className="mt-2 text-ink-soft" dir="auto">
+                {listing.meetupOptions}
               </p>
             </section>
           ) : null}
@@ -222,12 +278,14 @@ export default async function ListingDetailPage({
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {isOwner ? (
               <>
-                <Link
-                  href={`/${locale}/listings/${listing.id}/edit`}
-                  className="btn btn--secondary"
-                >
-                  {t("editListing")}
-                </Link>
+                {listing.status === "ACTIVE" ? (
+                  <Link
+                    href={`/${locale}/listings/${listing.id}/edit`}
+                    className="btn btn--secondary"
+                  >
+                    {t("editListing")}
+                  </Link>
+                ) : null}
                 {cancelAction}
               </>
             ) : reserveAction ? (
