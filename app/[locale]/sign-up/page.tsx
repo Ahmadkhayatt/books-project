@@ -6,12 +6,23 @@ import { notFound } from "next/navigation";
 
 import { AlertIcon } from "@/components/icons";
 import { routing } from "@/i18n/routing";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 import { formatIndex } from "@/lib/utils";
 
 import { signUp } from "./actions";
 
 type PageParams = { locale: string };
-type PageSearchParams = { error?: string | string[] };
+type PageSearchParams = {
+  error?: string | string[];
+  callbackUrl?: string | string[];
+};
+
+function safeCallback(
+  value: string | string[] | undefined,
+  locale: string,
+): string {
+  return sanitizeCallbackUrl(value, `/${locale}`);
+}
 
 export async function generateMetadata({
   params,
@@ -34,7 +45,8 @@ export default async function SignUpPage({
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
 
-  const { error } = await searchParams;
+  const { error, callbackUrl } = await searchParams;
+  const callback = safeCallback(callbackUrl, locale);
   const t = await getTranslations({ locale, namespace: "auth" });
 
   const errorMessages = {
@@ -74,7 +86,10 @@ export default async function SignUpPage({
           </p>
           <p className="mt-8 max-w-sm text-sm text-ink-soft">
             {t("haveAccount")}{" "}
-            <Link href={`/${locale}/sign-in`} className="text-link">
+            <Link
+              href={`/${locale}/sign-in?callbackUrl=${encodeURIComponent(callback)}`}
+              className="text-link"
+            >
               {t("signInTitle")}
             </Link>
           </p>
@@ -83,6 +98,7 @@ export default async function SignUpPage({
         <div className="md:col-span-6 md:col-start-7">
           <form action={signUp.bind(null, null)} className="form-card">
             <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="callbackUrl" value={callback} />
 
             {errorMessage ? (
               <div id="form-error" role="alert" className="form-alert">
