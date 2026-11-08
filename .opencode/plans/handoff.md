@@ -30,6 +30,18 @@ Builder died instantly twice. Retry later — no other blockers exist.
   merge (orchestrator) + push main if verdict is CLEAN.
 - Fix-cycle counter for M1 is now **1 of 4**. Current branch head: `6653906`.
 
+### 2026-11-08 — fix-cycle 1 re-verified, re-review blocked
+
+- Orchestrator re-ran all verify gates at `6653906` (no Docker): i18n:check
+  PASS (187=187), lint PASS, typecheck PASS, tests 27/27 PASS, build PASS.
+- Re-review could not run: the `reviewer` agent's model
+  (`opencode/pulse-alpha-free`) is **unavailable**, and the explorer substitute
+  hit the free-model quota again (`Free usage limit reached`).
+- M1 stays UNMERGED until a reviewer can confirm the 1 MAJOR + 6 MINORs are
+  fixed. One-line resume: re-dispatch reviewer (or explorer substitute) on
+  `main...feat/m1-catalog`; if VERDICT: CLEAN → orchestrator merges to main,
+  syncs docs, pushes, proceeds to M2.
+
 ## Current git state
 
 - Repo: `books-project/` → GitHub `Ahmadkhayatt/books-project`
