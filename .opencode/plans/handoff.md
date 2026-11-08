@@ -4,8 +4,31 @@
 
 **Free-model usage limit reached** (`Free usage limit reached. Free models work
 in OpenCode; subscribe to OpenCode Go to keep going: https://opencode.ai/go`).
-Both the orchestrator's M1 builder dispatch and the resume dispatch died
-immediately. Retry later — no other blockers exist.
+Builder died instantly twice. Retry later — no other blockers exist.
+
+### 2026-11-08 update — M1 progressed, then quota again
+
+- User instruction: **do not use docker** — milestone continues without the DB
+  (M0 is built to pass with DB down). Docker Desktop daemon was started earlier
+  and `bookshelf_exchange_pg` is still up on 127.0.0.1:5433, but no further
+  Docker commands are allowed unless the user lifts the restriction.
+- M1 builder completed on `feat/m1-catalog` (@027abba, pushed). Orchestrator
+  re-verified: i18n:check PASS (187=187), lint PASS, typecheck PASS,
+  tests 27/27 PASS, build PASS, dev 200s (/ar, /en, /ar/books/new, /api/health).
+- Reviewer model (`opencode/pulse-alpha-free`) is **unavailable** — review
+  was done via explorer substitute. VERDICT: FIX_REQUIRED (0 criticals, 1 major):
+  [CONTRACT] MAJOR `books/new/actions.ts` parseAuthors silently drops authors
+  after a >120-char name; plus 6 MINORs (callbackUrl backslash open-redirect
+  [contract-prescribed], hardcoded ISBN label, .typo-cover__foot letter-spacing
+  on Arabic, unbounded getBookDiscussion, ratings empty state not using
+  EmptyState, review-card two chips vs one-chip law).
+- Fix-cycle 1 was applied by the builder but the session died on quota BEFORE
+  verifying/committing. Orchestrator captured the worktree as
+  `6653906 milestone 1 (m1) fix: reviewer cycle 1 findings (unverified, quota
+  interrupted)` and pushed it. The fix is **unverified** — next step is
+  re-run i18n:check/lint/typecheck/test/build, then a fresh review, then
+  merge (orchestrator) + push main if verdict is CLEAN.
+- Fix-cycle counter for M1 is now **1 of 4**. Current branch head: `6653906`.
 
 ## Current git state
 
