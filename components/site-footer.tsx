@@ -45,6 +45,11 @@ export async function SiteFooter() {
                 </Link>
               </li>
               <li>
+                <Link href={`/${locale}/books`} className="footer-link-row">
+                  {t("catalog")}
+                </Link>
+              </li>
+              <li>
                 <Link href={`/${locale}/sign-in`} className="footer-link-row">
                   {t("signIn")}
                 </Link>

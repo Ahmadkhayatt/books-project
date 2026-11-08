@@ -27,6 +27,14 @@ function localeFrom(formData: FormData): "ar" | "en" {
   return formData.get("locale") === "en" ? "en" : "ar";
 }
 
+/** Same rule as the contract: relative paths only, never protocol-relative. */
+function callbackFrom(formData: FormData, locale: "ar" | "en"): string {
+  const raw = formData.get("callbackUrl");
+  if (typeof raw !== "string") return `/${locale}`;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return `/${locale}`;
+  return raw;
+}
+
 function isUniqueConstraintError(
   error: unknown,
 ): error is { code: "P2002" } {
@@ -40,6 +48,9 @@ function isUniqueConstraintError(
 
 export async function signUp(_previousState: unknown, formData: FormData) {
   const locale = localeFrom(formData);
+  const callbackUrl = callbackFrom(formData, locale);
+  const errorHref = (code: string) =>
+    `/${locale}/sign-up?error=${code}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
   const displayName = String(formData.get("displayName") ?? "").trim();
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -56,9 +67,7 @@ export async function signUp(_previousState: unknown, formData: FormData) {
     const weakPassword = parsed.error.issues.some(
       (issue) => issue.path[0] === "password",
     );
-    redirect(
-      `/${locale}/sign-up?error=${weakPassword ? "passwordWeak" : "generic"}`,
-    );
+    redirect(errorHref(weakPassword ? "passwordWeak" : "generic"));
   }
 
   const ipLimit = await checkRateLimit(
@@ -66,7 +75,7 @@ export async function signUp(_previousState: unknown, formData: FormData) {
     RATE_LIMITS.signupIp,
   );
   if (!ipLimit.ok) {
-    redirect(`/${locale}/sign-up?error=rateLimited`);
+    redirect(errorHref("rateLimited"));
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -98,17 +107,17 @@ export async function signUp(_previousState: unknown, formData: FormData) {
         select: { id: true },
       });
       redirect(
-        `/${locale}/sign-up?error=${existingEmail ? "emailTaken" : "usernameTaken"}`,
+        errorHref(existingEmail ? "emailTaken" : "usernameTaken"),
       );
     }
-    redirect(`/${locale}/sign-up?error=generic`);
+    redirect(errorHref("generic"));
   }
 
   try {
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: `/${locale}`,
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     if (error instanceof AuthError) {
