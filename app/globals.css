@@ -1007,6 +1007,11 @@ html[lang="ar"] .ar-prose {
     white-space: nowrap;
   }
 
+  :lang(ar) .typo-cover__foot {
+    font-family: var(--font-ar-ui);
+    letter-spacing: 0;
+  }
+
   .cover-mat {
     padding: 0.75rem;
     border: 1px solid var(--color-rule);

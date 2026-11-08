@@ -131,10 +131,11 @@ function parseAuthors(formData: FormData): {
 
   const seen = new Set<string>();
   const authors: Array<{ name: string; openLibraryKey: string | null }> = [];
+  let invalid = false;
 
   names.forEach((name, index) => {
     if (name.length > 120) {
-      authors.length = 0;
+      invalid = true;
       return;
     }
     const rawKey = keys[index] ?? "";
@@ -149,7 +150,8 @@ function parseAuthors(formData: FormData): {
     }
   });
 
-  return { authors, error: authors.length === 0 || names.length > 10 };
+  if (invalid) return { authors: [], error: true };
+  return { authors, error: authors.length === 0 };
 }
 
 /**

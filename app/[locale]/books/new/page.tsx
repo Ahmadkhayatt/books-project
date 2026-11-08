@@ -280,7 +280,7 @@ export default async function NewBookPage({
           {pair ? (
             <p className="text-sm text-ink-faint">
               <bdi dir="ltr" className="font-mono">
-                ISBN {pair.isbn13}
+                {t("isbnLabel")} {pair.isbn13}
               </bdi>
             </p>
           ) : null}

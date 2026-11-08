@@ -44,6 +44,7 @@ const LANGUAGE_MAP: Record<string, string> = {
 
 const MAX_SUBJECTS = 12;
 const MAX_SUBJECT_LENGTH = 60;
+const MAX_AUTHOR_LENGTH = 120;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -123,7 +124,7 @@ function extractAuthors(value: unknown): OpenLibraryAuthor[] {
   const seen = new Set<string>();
 
   for (const entry of value) {
-    const name = namedValue(entry);
+    const name = namedValue(entry)?.slice(0, MAX_AUTHOR_LENGTH).trim();
     if (!name) continue;
     const key = isRecord(entry) ? authorKey(entry) : null;
     const dedupeKey = key ?? name.toLowerCase();

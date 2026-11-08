@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { signIn } from "@/auth";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -27,12 +28,8 @@ function localeFrom(formData: FormData): "ar" | "en" {
   return formData.get("locale") === "en" ? "en" : "ar";
 }
 
-/** Same rule as the contract: relative paths only, never protocol-relative. */
 function callbackFrom(formData: FormData, locale: "ar" | "en"): string {
-  const raw = formData.get("callbackUrl");
-  if (typeof raw !== "string") return `/${locale}`;
-  if (!raw.startsWith("/") || raw.startsWith("//")) return `/${locale}`;
-  return raw;
+  return sanitizeCallbackUrl(formData.get("callbackUrl"), `/${locale}`);
 }
 
 function isUniqueConstraintError(

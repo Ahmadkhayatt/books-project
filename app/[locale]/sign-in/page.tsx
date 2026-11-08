@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { AlertIcon } from "@/components/icons";
 import { routing } from "@/i18n/routing";
+import { sanitizeCallbackUrl } from "@/lib/callback-url";
 import { formatIndex } from "@/lib/utils";
 
 import { signInWithCredentials } from "./actions";
@@ -20,11 +21,7 @@ function safeCallback(
   value: string | string[] | undefined,
   locale: string,
 ): string {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
-    return `/${locale}`;
-  }
-  return raw;
+  return sanitizeCallbackUrl(value, `/${locale}`);
 }
 
 export async function generateMetadata({

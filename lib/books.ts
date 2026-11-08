@@ -64,6 +64,29 @@ export type DiscussionComment = {
   replies: DiscussionComment[];
 };
 
+const discussionCommentSelect = {
+  id: true,
+  userId: true,
+  parentId: true,
+  reviewId: true,
+  containsSpoiler: true,
+  deletedAt: true,
+  createdAt: true,
+  user: {
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      profile: { select: { displayName: true } },
+    },
+  },
+  _count: { select: { likes: true } },
+} satisfies Prisma.CommentSelect;
+
+type DiscussionCommentRow = Prisma.CommentGetPayload<{
+  select: typeof discussionCommentSelect;
+}>;
+
 export type CatalogPage = {
   books: CatalogBook[];
   total: number;
@@ -279,39 +302,46 @@ export async function getBookDiscussion(
   viewerId: string | null,
   limit = 20,
 ): Promise<DiscussionComment[]> {
-  const [comments, bodies, viewerLikes] = await Promise.all([
-    prisma.comment.findMany({
-      where: { bookId, reviewId: null },
+  // Newest roots only, then descendants for exactly those threads. The body
+  // and like queries are scoped to the same id set, so a long-lived book never
+  // loads every comment on every render.
+  const rootRows = await prisma.comment.findMany({
+    where: { bookId, reviewId: null, parentId: null },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: discussionCommentSelect,
+  });
+  if (rootRows.length === 0) return [];
+
+  const rows: DiscussionCommentRow[] = [...rootRows];
+  const seenIds = new Set(rootRows.map((comment) => comment.id));
+  let parentIds = rootRows.map((comment) => comment.id);
+
+  while (parentIds.length > 0) {
+    const replies = await prisma.comment.findMany({
+      where: { bookId, reviewId: null, parentId: { in: parentIds } },
       orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        userId: true,
-        parentId: true,
-        reviewId: true,
-        containsSpoiler: true,
-        deletedAt: true,
-        createdAt: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            profile: { select: { displayName: true } },
-          },
-        },
-        _count: { select: { likes: true } },
-      },
-    }),
+      select: discussionCommentSelect,
+    });
+    const fresh = replies.filter((comment) => !seenIds.has(comment.id));
+    if (fresh.length === 0) break;
+    for (const comment of fresh) {
+      seenIds.add(comment.id);
+      rows.push(comment);
+    }
+    parentIds = fresh.map((comment) => comment.id);
+  }
+
+  const ids = rows.map((comment) => comment.id);
+
+  const [bodies, viewerLikes] = await Promise.all([
     prisma.comment.findMany({
-      where: { bookId, reviewId: null, deletedAt: null },
+      where: { id: { in: ids }, deletedAt: null },
       select: { id: true, body: true },
     }),
     viewerId
       ? prisma.commentLike.findMany({
-          where: {
-            userId: viewerId,
-            comment: { is: { bookId, reviewId: null } },
-          },
+          where: { userId: viewerId, commentId: { in: ids } },
           select: { commentId: true },
         })
       : Promise.resolve([]),
@@ -321,7 +351,7 @@ export async function getBookDiscussion(
   const likedIds = new Set(viewerLikes.map((entry) => entry.commentId));
 
   const nodes = new Map<string, DiscussionComment>();
-  for (const comment of comments) {
+  for (const comment of rows) {
     nodes.set(comment.id, {
       id: comment.id,
       userId: comment.userId,

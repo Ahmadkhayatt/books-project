@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { EmptyState } from "@/components/empty-state";
 import { StarIcon } from "@/components/icons";
 import type { RatingHistogram } from "@/lib/books";
 import { formatCount } from "@/lib/utils";
@@ -71,9 +72,7 @@ export async function RatingSummary({
             );
           })}
         </div>
-        {count === 0 ? (
-          <p className="mt-3 text-sm text-ink-soft">{t("noRatings")}</p>
-        ) : null}
+        {count === 0 ? <EmptyState title={t("noRatings")} /> : null}
       </div>
     </div>
   );
