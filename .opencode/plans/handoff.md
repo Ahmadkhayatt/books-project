@@ -42,6 +42,16 @@ Builder died instantly twice. Retry later — no other blockers exist.
   `main...feat/m1-catalog`; if VERDICT: CLEAN → orchestrator merges to main,
   syncs docs, pushes, proceeds to M2.
 
+### 2026-11-08 — user-directed merge
+
+- User instructed: merge + push now, keep everything inside the repo.
+  Orchestrator merged `feat/m1-catalog` into `main` (merge commit `4cab567`),
+  re-verified post-merge (i18n 187/187, lint, typecheck, tests 27/27, build —
+  all PASS, no Docker), pushed `main` to origin, deleted local
+  `feat/m1-catalog`. **M1 = DONE.**
+- Next: M2 (listings + wishlist + search/filters) per PLAN.md. DB-backed
+  runtime checks still deferred until Docker is re-enabled.
+
 ## Current git state
 
 - Repo: `books-project/` → GitHub `Ahmadkhayatt/books-project`

@@ -6,7 +6,7 @@ Target: Next.js + TypeScript, PostgreSQL + Prisma, Auth.js, Tailwind, Arabic-fir
 | # | Milestone | Status | Branch | PR | Fix-cycles |
 |---|-----------|--------|--------|----|------------|
 | M0 | Scaffold (git, docker-compose, Next.js, Prisma v1, Auth.js, i18n+RTL, DESIGN.md) | DONE | main @ aa99dcf (pushed) | n/a (PRs off) | 0 |
-| M1 | Catalog + ISBN add + book page (ratings/reviews/comments/likes) | IN PROGRESS — builder complete & verified; fix-cycle 1 re-verified CLEAN locally; re-review BLOCKED by reviewer model unavailable + quota on substitute (see blockers) | feat/m1-catalog @ 6653906 | n/a | 1 |
+| M1 | Catalog + ISBN add + book page (ratings/reviews/comments/likes) | DONE — merged feat/m1-catalog → main @ 4cab567, pushed; post-merge verify all PASS | feat/m1-catalog (deleted, merged) | n/a | 1 |
 | M2 | Listings + wishlist + search/filters | PENDING | — | — | 0 |
 | M3 | Profiles, follows, reading lists, activity feed | PENDING | — | — | 0 |
 | M4 | Messaging + exchange complete + mutual ratings + reputation | PENDING | — | — | 0 |
