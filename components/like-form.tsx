@@ -10,6 +10,7 @@ import { formatCount } from "@/lib/utils";
 type LikeFormProps = {
   kind: "review" | "comment";
   targetId: string;
+  bookId: string;
   liked: boolean;
   count: number;
   locale: string;
@@ -22,6 +23,7 @@ type LikeFormProps = {
 export async function LikeForm({
   kind,
   targetId,
+  bookId,
   liked,
   count,
   locale,
@@ -29,8 +31,8 @@ export async function LikeForm({
   const t = await getTranslations("book");
   const action =
     kind === "review"
-      ? toggleReviewLike.bind(null, targetId)
-      : toggleCommentLike.bind(null, targetId);
+      ? toggleReviewLike.bind(null, targetId, bookId, locale)
+      : toggleCommentLike.bind(null, targetId, bookId, locale);
 
   return (
     <form action={action} className="inline-flex">

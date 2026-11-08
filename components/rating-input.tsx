@@ -9,6 +9,7 @@ import { StarIcon } from "@/components/icons";
 type RatingInputProps = {
   bookId: string;
   currentValue: number | null;
+  locale: string;
   labels: {
     group: string;
     save: string;
@@ -24,6 +25,7 @@ type RatingInputProps = {
 export function RatingInput({
   bookId,
   currentValue,
+  locale,
   labels,
 }: RatingInputProps) {
   const [selected, setSelected] = useState(currentValue ?? 0);
@@ -34,7 +36,7 @@ export function RatingInput({
   function save() {
     if (selected < 1) return;
     startTransition(async () => {
-      const result = await rateBook(bookId, selected);
+      const result = await rateBook(bookId, selected, locale);
       if (result.ok) {
         setSaved(true);
         router.refresh();

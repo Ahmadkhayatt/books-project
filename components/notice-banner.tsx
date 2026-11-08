@@ -13,13 +13,19 @@ const NOTICE_KEYS = {
   reviewDeleted: "reviewDeleted",
 } as const;
 
-const ERROR_KEYS = [
-  "errorInvalid",
-  "errorReview",
-  "errorComment",
-  "errorRateLimited",
-  "errorGeneric",
-] as const;
+/** Action redirect codes → notice keys. Unknown codes render nothing. */
+const ERROR_CODE_KEYS: Record<string, string> = {
+  reviewInvalid: "errorReview",
+  commentInvalid: "errorComment",
+  rateLimited: "errorRateLimited",
+  invalidIsbn: "errorInvalid",
+  invalid: "errorInvalid",
+  errorInvalid: "errorInvalid",
+  errorReview: "errorReview",
+  errorComment: "errorComment",
+  errorRateLimited: "errorRateLimited",
+  errorGeneric: "errorGeneric",
+};
 
 /**
  * Generic status/alert banner (contract H10). Unknown notice or error codes
@@ -34,8 +40,7 @@ export async function NoticeBanner({
 
   let key: string | null = null;
   if (kind === "error") {
-    key =
-      code && (ERROR_KEYS as readonly string[]).includes(code) ? code : null;
+    key = code ? (ERROR_CODE_KEYS[code] ?? null) : null;
   } else {
     key = NOTICE_KEYS[kind];
   }

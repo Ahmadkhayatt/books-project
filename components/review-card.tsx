@@ -1,11 +1,11 @@
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 
 import { LikeForm } from "@/components/like-form";
 import type { ReviewWithMeta } from "@/lib/books";
 
 type ReviewCardProps = {
   review: ReviewWithMeta;
+  bookId: string;
   locale: string;
   viewerId: string | null;
 };
@@ -18,7 +18,12 @@ function reviewDate(locale: string, date: Date): string {
   }).format(date);
 }
 
-export async function ReviewCard({ review, locale, viewerId }: ReviewCardProps) {
+export async function ReviewCard({
+  review,
+  bookId,
+  locale,
+  viewerId,
+}: ReviewCardProps) {
   const t = await getTranslations("book");
   const own = viewerId === review.user.id;
   const displayName =
@@ -80,14 +85,15 @@ export async function ReviewCard({ review, locale, viewerId }: ReviewCardProps) 
         <LikeForm
           kind="review"
           targetId={review.id}
+          bookId={bookId}
           liked={review.viewerLiked}
           count={review._count.likes}
           locale={locale}
         />
         {own ? (
-          <Link href="#review-form" className="btn btn--ghost btn--sm">
+          <a href="#review-form" className="btn btn--ghost btn--sm">
             {t("editReview")}
-          </Link>
+          </a>
         ) : null}
       </div>
     </article>

@@ -33,6 +33,13 @@ export async function CommentItem({
   viewerId,
 }: CommentItemProps) {
   const t = await getTranslations("book");
+
+  /** Form-compatible wrapper around the contract's `(prevState, formData)` action. */
+  async function submitReply(formData: FormData): Promise<void> {
+    "use server";
+    await createComment(EMPTY_COMMENT_STATE, formData);
+  }
+
   const own = viewerId === comment.user.id;
   const canReply = Boolean(viewerId) && depth < 3 && !comment.deletedAt;
   const displayName =
@@ -87,6 +94,7 @@ export async function CommentItem({
               <LikeForm
                 kind="comment"
                 targetId={comment.id}
+                bookId={bookId}
                 liked={comment.viewerLiked}
                 count={comment.likeCount}
                 locale={locale}
@@ -99,7 +107,7 @@ export async function CommentItem({
                   {t("reply")}
                 </summary>
                 <form
-                  action={createComment.bind(null, EMPTY_COMMENT_STATE)}
+                  action={submitReply}
                   className="mt-2"
                 >
                   <input type="hidden" name="bookId" value={bookId} />
@@ -110,14 +118,20 @@ export async function CommentItem({
                     name="reviewId"
                     value={comment.reviewId ?? ""}
                   />
+                  <label
+                    htmlFor={`reply-body-${comment.id}`}
+                    className="text-sm text-ink-soft"
+                  >
+                    {t("commentPlaceholder")}
+                  </label>
                   <textarea
+                    id={`reply-body-${comment.id}`}
                     name="body"
                     required
                     maxLength={2000}
                     rows={3}
-                    aria-label={t("commentPlaceholder")}
-                    placeholder={t("commentPlaceholder")}
-                    className="field"
+                    className="field mt-2"
+                    dir="auto"
                   />
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                     <label className="flex items-center gap-2 text-sm text-ink-soft">
