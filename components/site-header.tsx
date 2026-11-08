@@ -53,6 +53,9 @@ export async function SiteHeader() {
             <Link href={`/${locale}/books`} className="nav-link">
               {tNav("catalog")}
             </Link>
+            <Link href={`/${locale}/listings`} className="nav-link">
+              {tNav("listings")}
+            </Link>
 
             {session?.user ? (
               <>
@@ -88,6 +91,9 @@ export async function SiteHeader() {
               </Link>
               <Link href={`/${locale}/books`} className="mobile-nav-link">
                 {tNav("catalog")}
+              </Link>
+              <Link href={`/${locale}/listings`} className="mobile-nav-link">
+                {tNav("listings")}
               </Link>
 
               {session?.user ? (

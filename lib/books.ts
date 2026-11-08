@@ -1,6 +1,7 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
+import { ListingStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -12,12 +13,42 @@ export type CatalogBook = Prisma.BookGetPayload<{
   include: { authors: { include: { author: true } } };
 }>;
 
-const bookWithAuthors = {
+export const bookWithAuthors = {
   authors: {
     orderBy: { order: "asc" as const },
     include: { author: true },
   },
 } satisfies Prisma.BookInclude;
+
+/**
+ * M2 ledger-row shape: a Listing with the offered Book (authors) and the
+ * seller (profile display name). CANCELLED listings are excluded upstream.
+ */
+export type ListingWithBook = Prisma.ListingGetPayload<{
+  include: {
+    book: {
+      include: {
+        authors: {
+          orderBy: { order: "asc" as const },
+          include: { author: true },
+        },
+      },
+    };
+    seller: { include: { profile: true } };
+  };
+}>;
+
+const listingInclude = {
+  book: {
+    include: {
+      authors: {
+        orderBy: { order: "asc" as const },
+        include: { author: true },
+      },
+    },
+  },
+  seller: { include: { profile: true } },
+} satisfies Prisma.ListingInclude;
 
 export type RatingHistogram = Record<1 | 2 | 3 | 4 | 5, number>;
 
@@ -132,9 +163,29 @@ export async function getBookById(
 
   if (!book) return null;
 
-  // M2 replaces this stub with the real ACTIVE-listing count/rows. M1 does not
-  // query the Listing table at all (contract H2/H9).
-  return { ...book, listingsCount: 0 };
+  // M2: the catalogue count is the live number of ACTIVE offers for the book.
+  const listingsCount = await prisma.listing.count({
+    where: { bookId: id, status: ListingStatus.ACTIVE },
+  });
+
+  return { ...book, listingsCount };
+}
+
+/**
+ * M2: the book's current ACTIVE offers, newest first — the book page's
+ * offers ledger (up to `limit` rows).
+ */
+export async function getBookListings(
+  bookId: string,
+  viewerId: string | null,
+  limit = 4,
+): Promise<ListingWithBook[]> {
+  return prisma.listing.findMany({
+    where: { bookId, status: ListingStatus.ACTIVE },
+    include: listingInclude,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
 }
 
 export async function getRatingAggregates(

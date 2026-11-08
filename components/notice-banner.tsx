@@ -1,8 +1,18 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+type NoticeKind =
+  | "created"
+  | "exists"
+  | "reviewDeleted"
+  | "listingCreated"
+  | "listingCancelled"
+  | "listingReserved"
+  | "wishlistAdded"
+  | "wishlistRemoved";
+
 type NoticeBannerProps = {
-  kind: "created" | "exists" | "reviewDeleted" | "error";
+  kind: NoticeKind | "error";
   code?: string;
   dismissHref: string;
 };
@@ -11,6 +21,11 @@ const NOTICE_KEYS = {
   created: "created",
   exists: "exists",
   reviewDeleted: "reviewDeleted",
+  listingCreated: "listingCreated",
+  listingCancelled: "listingCancelled",
+  listingReserved: "listingReserved",
+  wishlistAdded: "wishlistAdded",
+  wishlistRemoved: "wishlistRemoved",
 } as const;
 
 /** Action redirect codes → notice keys. Unknown codes render nothing. */
@@ -25,6 +40,7 @@ const ERROR_CODE_KEYS: Record<string, string> = {
   errorComment: "errorComment",
   errorRateLimited: "errorRateLimited",
   errorGeneric: "errorGeneric",
+  listingInvalid: "errorListing",
 };
 
 /**
