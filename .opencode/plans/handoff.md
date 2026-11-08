@@ -62,15 +62,15 @@ Builder died instantly twice. Retry later — no other blockers exist.
   created from `main`, clean tree, no code yet.
 - Builder dispatch immediately failed: `Free usage limit reached`. Resume by
   re-dispatching builder on `feat/m2-listings` with the M2 contract.
-- NOTE (user-flagged): GitHub **default branch is still `feat/m0-scaffold`**,
-  not `main` (HEAD symref from first push of empty repo). Local workflow uses
-  `main` correctly; fixing GitHub default requires `gh repo edit
-  --default-branch main` (gh not authenticated, PRs off) — manual step in
-  GitHub Settings → Default branch. Non-blocking for the loop. Remote leftover
-  branches `feat/m0-scaffold` / `feat/m1-catalog` can be deleted anytime.
+- NOTE (user-flagged): GitHub **default branch is now `main`** (user fixed it
+  2026-11-08; `ls-remote --symref` HEAD → `refs/heads/main`). Leftover remote
+  branches `feat/m0-scaffold` / `feat/m1-catalog` still exist on origin —
+  harmless; delete anytime via GitHub Settings → Branches.
 - Models now: orchestrator `crouton-alpha-free#max`, architect/reviewer
   `flint-40b-free#max`, builder `deepseek-v4.1-flash-free#max`,
   explorer `mimo-v2.6-flash-free`.
+- Re-dispatch 2026-11-08 (after default-branch fix): builder still quota-blocked
+  (`Free usage limit reached`). `feat/m2-listings` clean at `7bfcf4b`, no code.
 
 ## Current git state
 
