@@ -36,6 +36,29 @@ export function formatYear(locale: string, value: number): string {
 }
 
 /**
+ * Languages offered in the add-book form (ISO 639-1). Kept outside the
+ * `"use server"` action module, which may only export async functions.
+ */
+export const BOOK_LANGUAGE_CODES = [
+  "ar",
+  "en",
+  "fr",
+  "de",
+  "es",
+  "it",
+  "pt",
+  "tr",
+  "fa",
+  "ur",
+  "hi",
+  "ru",
+  "ja",
+  "zh",
+] as const;
+
+export type BookLanguageCode = (typeof BOOK_LANGUAGE_CODES)[number];
+
+/**
  * Catalogue display title: Arabic surfaces prefer the Arabic title when we
  * have one; English surfaces keep the record's primary title.
  */

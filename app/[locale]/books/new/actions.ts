@@ -11,23 +11,7 @@ import { isAllowedCoverUrl } from "@/lib/openlibrary-map";
 import { lookupBookByIsbn } from "@/lib/openlibrary";
 import { prisma } from "@/lib/prisma";
 import { RATE_LIMITS, checkRateLimit } from "@/lib/rate-limit";
-
-export const BOOK_LANGUAGE_CODES = [
-  "ar",
-  "en",
-  "fr",
-  "de",
-  "es",
-  "it",
-  "pt",
-  "tr",
-  "fa",
-  "ur",
-  "hi",
-  "ru",
-  "ja",
-  "zh",
-] as const;
+import { BOOK_LANGUAGE_CODES } from "@/lib/utils";
 
 export type BookFormValues = {
   title: string;
@@ -175,8 +159,13 @@ function parseAuthors(formData: FormData): {
  */
 export async function lookupIsbn(formData: FormData): Promise<void> {
   const locale = localeFrom(formData);
-  const pair = isbnPair(String(formData.get("isbn") ?? ""));
-  if (!pair) redirect(`/${locale}/books/new?error=invalidIsbn`);
+  const rawIsbn = String(formData.get("isbn") ?? "").trim().slice(0, 32);
+  const pair = isbnPair(rawIsbn);
+  if (!pair) {
+    redirect(
+      `/${locale}/books/new?error=invalidIsbn&isbn=${encodeURIComponent(rawIsbn)}`,
+    );
+  }
 
   const userId = await activeUserId();
   if (!userId) {
