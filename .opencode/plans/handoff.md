@@ -52,6 +52,26 @@ Builder died instantly twice. Retry later — no other blockers exist.
 - Next: M2 (listings + wishlist + search/filters) per PLAN.md. DB-backed
   runtime checks still deferred until Docker is re-enabled.
 
+### 2026-11-08 — M2 contract written, builder blocked on quota
+
+- Architect + reviewer agents switched to `opencode/flint-40b-free#max` (next
+  best free model after `pulse-alpha-free` became unavailable). Architect
+  produced the full M2 contract but its write tool was permission-denied;
+  orchestrator saved it verbatim to `.opencode/plans/m2-listings.md` and
+  committed it to `main` as `7bfcf4b`, pushed. Branch `feat/m2-listings`
+  created from `main`, clean tree, no code yet.
+- Builder dispatch immediately failed: `Free usage limit reached`. Resume by
+  re-dispatching builder on `feat/m2-listings` with the M2 contract.
+- NOTE (user-flagged): GitHub **default branch is still `feat/m0-scaffold`**,
+  not `main` (HEAD symref from first push of empty repo). Local workflow uses
+  `main` correctly; fixing GitHub default requires `gh repo edit
+  --default-branch main` (gh not authenticated, PRs off) — manual step in
+  GitHub Settings → Default branch. Non-blocking for the loop. Remote leftover
+  branches `feat/m0-scaffold` / `feat/m1-catalog` can be deleted anytime.
+- Models now: orchestrator `crouton-alpha-free#max`, architect/reviewer
+  `flint-40b-free#max`, builder `deepseek-v4.1-flash-free#max`,
+  explorer `mimo-v2.6-flash-free`.
+
 ## Current git state
 
 - Repo: `books-project/` → GitHub `Ahmadkhayatt/books-project`

@@ -7,7 +7,7 @@ Target: Next.js + TypeScript, PostgreSQL + Prisma, Auth.js, Tailwind, Arabic-fir
 |---|-----------|--------|--------|----|------------|
 | M0 | Scaffold (git, docker-compose, Next.js, Prisma v1, Auth.js, i18n+RTL, DESIGN.md) | DONE | main @ aa99dcf (pushed) | n/a (PRs off) | 0 |
 | M1 | Catalog + ISBN add + book page (ratings/reviews/comments/likes) | DONE — merged feat/m1-catalog → main @ 4cab567, pushed; post-merge verify all PASS | feat/m1-catalog (deleted, merged) | n/a | 1 |
-| M2 | Listings + wishlist + search/filters | PENDING | — | — | 0 |
+| M2 | Listings + wishlist + search/filters | IN PROGRESS — contract written (m2-listings.md @ main 7bfcf4b); builder dispatch failed on free-model quota, no code yet | feat/m2-listings | n/a | 0 |
 | M3 | Profiles, follows, reading lists, activity feed | PENDING | — | — | 0 |
 | M4 | Messaging + exchange complete + mutual ratings + reputation | PENDING | — | — | 0 |
 | M5 | Reports + admin panel + rate limiting | PENDING | — | — | 0 |
